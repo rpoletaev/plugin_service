@@ -69,7 +69,6 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	obj := exportFunc(body, ei.Title)
-	// fmt.Fprintf(rw, "%+v\n", obj)
 	err = mongoExec(ei.Title, func(c *mgo.Collection) error {
 		return c.Insert(obj)
 	})

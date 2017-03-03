@@ -1,0 +1,8 @@
+mongo: "mongodb://mongo:27017"
+mongo_base: "admin"
+mysql: "root:test@tcp(mysql:3306)/cache"
+redis_address: "pub-redis-19741.eu-central-1-1.1.ec2.redislabs.com:19741"
+log_hook:
+    host: logs5.papertrailapp.com
+    port: 48428
+    from: plugin_service

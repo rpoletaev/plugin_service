@@ -27,7 +27,6 @@ type Config struct {
 	Mongo        string   `yaml:"mongo"`
 	MongoBase    string   `yaml:"mongo_base"`
 	MySQL        string   `yaml:"mysql"`
-	Port         string   `yaml:"port"`
 	RedisAddress string   `yaml:"redis_address"`
 }
 
@@ -112,7 +111,7 @@ func setupLoger() {
 	logHook, err := logrus_papertrail.NewPapertrailHook(&logrus_papertrail.Hook{
 		Host:     config.LogHook.Host,
 		Port:     config.LogHook.Port,
-		Appname:  "save_export",
+		Appname:  "plugin_service",
 		Hostname: config.LogHook.From,
 	})
 	if err != nil {

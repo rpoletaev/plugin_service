@@ -55,6 +55,7 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	loger.Info("Читаем данные")
 	ei, err := ps.GetExportInfo(string(body))
 	if err != nil {
 		loger.Error(err)
@@ -62,6 +63,7 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	loger.Info("Получаем функцию")
 	exportFunc, err := getPluginFunc()
 	if err != nil {
 		loger.Errorf("Не удалось загрузить плагин: %v", err)
@@ -69,13 +71,16 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	loger.Info("Получаем данные")
 	obj := exportFunc(body, ei.Title)
+
+	loger.Info("Пишем в монгу")
 	err = mongoExec(ei.Title, func(c *mgo.Collection) error {
 		return c.Insert(obj)
 	})
 
 	if err != nil {
-		loger.Error()
+		loger.Error(err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}

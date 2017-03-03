@@ -37,6 +37,8 @@ var (
 )
 
 func main() {
+	config = &Config{}
+	loger = log.New()
 	readConfig()
 	setupLoger()
 
@@ -101,7 +103,7 @@ func readConfig() {
 		loger.Fatalf("Ошбка при чтении конфига: %v", err)
 	}
 
-	err = yaml.Unmarshal(cnfBts, config)
+	err = yaml.Unmarshal(cnfBts, &config)
 	if err != nil {
 		loger.Fatalf("Ошбка конфигурации %v", err)
 	}

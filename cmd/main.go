@@ -1,15 +1,16 @@
 package main
 
 import (
+	"io/ioutil"
+	"net/http"
+	"plugin"
+
 	"github.com/Sirupsen/logrus"
 	log "github.com/Sirupsen/logrus"
 	ps "github.com/rpoletaev/plugin_service"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/polds/logrus-papertrail-hook.v2"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
-	"net/http"
-	"plugin"
 )
 
 const (
@@ -47,6 +48,7 @@ func main() {
 }
 
 func getExportHandler(rw http.ResponseWriter, r *http.Request) {
+	loger.Info("Incomming xml")
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {

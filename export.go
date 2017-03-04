@@ -11,7 +11,7 @@ type ExportInfo struct {
 }
 
 func GetExportInfo(xmlContent string) (*ExportInfo, error) {
-	r, err := regexp.Compile("<(.+:)*([a-zA-Z]+) schemeVersion=\"(.+?)\">")
+	r, err := regexp.Compile(`<(.+:)*([a-zA-Z]*\d*[a-zA-Z]*) schemeVersion=\"(.+?)\">`)
 	if err != nil {
 		return nil, err
 	}

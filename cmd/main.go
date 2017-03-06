@@ -5,11 +5,10 @@ import (
 	"net/http"
 	"plugin"
 
-	"github.com/Sirupsen/logrus"
 	log "github.com/Sirupsen/logrus"
 	ps "github.com/rpoletaev/plugin_service"
+	"github.com/weekface/mgorus"
 	"gopkg.in/mgo.v2"
-	"gopkg.in/polds/logrus-papertrail-hook.v2"
 	"gopkg.in/yaml.v2"
 )
 
@@ -17,18 +16,19 @@ const (
 	pluginFunc = "GetExportInterface"
 )
 
-type LogHook struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
-	From string `yaml:"from"`
+type MongoLogHookConfig struct {
+	Host       string `yaml:"log_host"`
+	System     string `yaml:"log_system"`
+	DBName     string `yaml:"log_dbname"`
+	Collection string `yaml:"log_collection"`
 }
 
 type Config struct {
-	LogHook      *LogHook `yaml:"log_hook"`
-	Mongo        string   `yaml:"mongo"`
-	MongoBase    string   `yaml:"mongo_base"`
-	MySQL        string   `yaml:"mysql"`
-	RedisAddress string   `yaml:"redis_address"`
+	LogHook      *MongoLogHookConfig `yaml:"log_hook"`
+	Mongo        string              `yaml:"mongo"`
+	MongoBase    string              `yaml:"mongo_base"`
+	MySQL        string              `yaml:"mysql"`
+	RedisAddress string              `yaml:"redis_address"`
 }
 
 var (
@@ -44,45 +44,45 @@ func main() {
 	setupLoger()
 
 	http.HandleFunc("/load", getExportHandler)
-	logrus.Error(http.ListenAndServe(":3131", nil))
+	logEntry().Error(http.ListenAndServe(":3131", nil))
 }
 
 func getExportHandler(rw http.ResponseWriter, r *http.Request) {
-	loger.Info("Incomming xml")
+	logEntry().Info("Incomming xml")
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
-		loger.Error(err)
+		logEntry().Error(err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	loger.Info("Читаем данные")
+	logEntry().Info("Читаем данные")
 	ei, err := ps.GetExportInfo(string(body))
 	if err != nil {
-		loger.Error(err)
+		logEntry().Error(err)
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	loger.Info("Получаем функцию")
+	logEntry().Info("Получаем функцию")
 	exportFunc, err := getPluginFunc()
 	if err != nil {
-		loger.Errorf("Не удалось загрузить плагин: %v", err)
+		logEntry().Errorf("Не удалось загрузить плагин: %v", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	loger.Info("Получаем данные")
+	logEntry().Info("Получаем данные")
 	obj := exportFunc(body, ei.Title)
 
-	loger.Info("Пишем в монгу")
+	logEntry().Info("Пишем в монгу")
 	err = mongoExec(ei.Title, func(c *mgo.Collection) error {
 		return c.Insert(obj)
 	})
 
 	if err != nil {
-		loger.Error(err)
+		logEntry().Error(err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -107,32 +107,34 @@ func getPluginFunc() (func([]byte, string) interface{}, error) {
 func readConfig() {
 	cnfBts, err := ioutil.ReadFile("config.yaml")
 	if err != nil {
-		loger.Fatalf("Ошбка при чтении конфига: %v", err)
+		logEntry().Fatalf("Ошбка при чтении конфига: %v", err)
 	}
 
 	err = yaml.Unmarshal(cnfBts, &config)
 	if err != nil {
-		loger.Fatalf("Ошбка конфигурации %v", err)
+		logEntry().Fatalf("Ошбка конфигурации %v", err)
 	}
 }
 
 func setupLoger() {
-	logHook, err := logrus_papertrail.NewPapertrailHook(&logrus_papertrail.Hook{
-		Host:     config.LogHook.Host,
-		Port:     config.LogHook.Port,
-		Appname:  "plugin_service",
-		Hostname: config.LogHook.From,
-	})
+	logHook, err := mgorus.NewHooker(config.LogHook.Host, config.LogHook.DBName, config.LogHook.System)
 	if err != nil {
-		loger.Fatalf("Ошибка при инициализации логера: %v", err)
+		logEntry().Fatalf("Ошибка при инициализации логера: %v", err)
 	}
 	loger.Hooks.Add(logHook)
+}
+
+func logEntry() *log.Entry {
+	return loger.WithFields(log.Fields{
+		"system": config.LogHook.System,
+		"host":   config.LogHook.Host,
+	})
 }
 
 func setupMongo() {
 	mongo, err := mgo.Dial(config.Mongo)
 	if err != nil {
-		loger.Fatalf("Не удалось подключиться к MongoDB: %v", err)
+		logEntry().Fatalf("Не удалось подключиться к MongoDB: %v", err)
 	}
 	mongo.SetMode(mgo.Monotonic, true)
 }

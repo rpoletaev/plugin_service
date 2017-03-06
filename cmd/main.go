@@ -42,6 +42,12 @@ func main() {
 	loger = log.New()
 	readConfig()
 	setupLoger()
+	mongodb, err := mgo.Dial(config.Mongo)
+	if err != nil {
+		logEntry().Fatalf("Не удалось подключиться к MongoDB: %v", err)
+	}
+	mongo = mongodb
+	mongo.SetMode(mgo.Monotonic, true)
 
 	http.HandleFunc("/load", getExportHandler)
 	logEntry().Error(http.ListenAndServe(":3131", nil))
@@ -129,14 +135,6 @@ func logEntry() *log.Entry {
 		"system": config.LogHook.System,
 		"host":   config.LogHook.Host,
 	})
-}
-
-func setupMongo() {
-	mongo, err := mgo.Dial(config.Mongo)
-	if err != nil {
-		logEntry().Fatalf("Не удалось подключиться к MongoDB: %v", err)
-	}
-	mongo.SetMode(mgo.Monotonic, true)
 }
 
 func mongoExec(colectionName string, execFunc func(*mgo.Collection) error) error {

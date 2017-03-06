@@ -1,15 +1,15 @@
 package main
 
 import (
-	"io/ioutil"
-	"net/http"
-	"plugin"
-
 	log "github.com/Sirupsen/logrus"
 	ps "github.com/rpoletaev/plugin_service"
 	"github.com/weekface/mgorus"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"net/http"
+	"plugin"
+	"reflect"
 )
 
 const (
@@ -54,7 +54,6 @@ func main() {
 }
 
 func getExportHandler(rw http.ResponseWriter, r *http.Request) {
-	logEntry().Info("Incomming xml")
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -81,12 +80,15 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 
 	logEntry().Info("Получаем данные")
 	obj := exportFunc(body, ei.Title)
+	if obj == nil {
+		logEntry().Errorf("Не удалось получить объект из плагина!")
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	logEntry().Info("Пишем в монгу")
-	err = mongoExec(ei.Title, func(c *mgo.Collection) error {
-		return c.Insert(obj)
-	})
-
+	//Возвращаться может как одно значение, так и слайс, поэтому предварительно обрабатываем, проверяем и сохраняем каждое
+	err = storeExportObject(ei.Title, obj)
 	if err != nil {
 		logEntry().Error(err)
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -144,4 +146,25 @@ func mongoExec(colectionName string, execFunc func(*mgo.Collection) error) error
 	db := session.DB(config.MongoBase)
 	collection := db.C(colectionName)
 	return execFunc(collection)
+}
+
+func storeExportObject(colName string, obj interface{}) error {
+	objRefVal := reflect.ValueOf(obj)
+	if objRefVal.Kind() != reflect.Slice {
+		return mongoExec(colName, func(col *mgo.Collection) error {
+			return col.Insert(obj)
+		})
+	}
+
+	objLen := objRefVal.Len()
+	if objLen > 0 {
+		for i := 0; i < objLen; i++ {
+			if err := mongoExec(colName, func(col *mgo.Collection) error {
+				return col.Insert(objRefVal.Index(i).Interface())
+			}); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

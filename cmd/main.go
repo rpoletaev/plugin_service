@@ -87,7 +87,8 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	logEntry().Info("Пишем в монгу")
-	//Возвращаться может как одно значение, так и слайс, поэтому предварительно обрабатываем, проверяем и сохраняем каждое
+	//Возвращаться может как одно значение, так и слайс, поэтому предварительно
+	//обрабатываем, проверяем и сохраняем каждое
 	err = storeExportObject(ei.Title, obj)
 	if err != nil {
 		logEntry().Error(err)

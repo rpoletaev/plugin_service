@@ -1,15 +1,16 @@
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
-	ps "github.com/rpoletaev/plugin_service"
-	"github.com/weekface/mgorus"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
 	"plugin"
 	"reflect"
+
+	log "github.com/Sirupsen/logrus"
+	expinf "github.com/rpoletaev/exportinfo"
+	"github.com/weekface/mgorus"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -63,7 +64,7 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	logEntry().Info("Читаем данные")
-	ei, err := ps.GetExportInfo(string(body))
+	ei, err := expinf.GetExportInfo(string(body))
 	if err != nil {
 		logEntry().Error(err)
 		rw.WriteHeader(http.StatusBadRequest)

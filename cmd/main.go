@@ -82,7 +82,7 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 
 	obj := exportFunc(body, ei.Title)
 	if obj == nil {
-		logEntry().Errorf("Не удалось получить объект из плагина!")
+		fmt.Fprintln(rw, "Не удалось получить объект из плагина!")
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	ps "github.com/rpoletaev/plugin_service"
+	ps "github.com/rpoletaev/exportinfo"
 	"github.com/weekface/mgorus"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/yaml.v2"
@@ -64,7 +64,6 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// logEntry().Info("Читаем данные")
 	ei, err := ps.GetExportInfo(string(body))
 	if err != nil {
 		//logEntry().Error(err)
@@ -73,7 +72,6 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//logEntry().Info("Получаем функцию")
 	exportFunc, err := getPluginFunc()
 	if err != nil {
 		// logEntry().Errorf("Не удалось загрузить плагин: %v", err)
@@ -82,7 +80,6 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//logEntry().Info("Получаем данные")
 	obj := exportFunc(body, ei.Title)
 	if obj == nil {
 		logEntry().Errorf("Не удалось получить объект из плагина!")
@@ -90,7 +87,6 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//logEntry().Info("Пишем в монгу")
 	//Возвращаться может как одно значение, так и слайс, поэтому предварительно
 	//обрабатываем, проверяем и сохраняем каждое
 	err = storeExportObject(ei.Title, obj)

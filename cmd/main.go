@@ -59,31 +59,27 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		//logEntry().Error(err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		rw.Write([]byte(err.Error()))
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	ei, err := ps.GetExportInfo(string(body))
 	if err != nil {
 		//logEntry().Error(err)
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write([]byte(err.Error()))
+		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	exportFunc, err := getPluginFunc()
 	if err != nil {
 		// logEntry().Errorf("Не удалось загрузить плагин: %v", err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(rw, "Не удалось загрузить плагин: %v", err)
+		http.Error(rw, fmt.Sprintf("Не удалось загрузить плагин: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	obj := exportFunc(body, ei.Title)
 	if obj == nil {
-		fmt.Fprintln(rw, "Не удалось получить объект из плагина!")
-		rw.WriteHeader(http.StatusInternalServerError)
+		http.Error(rw, "Не удалось получить объект из плагина!", http.StatusInternalServerError)
 		return
 	}
 
@@ -92,8 +88,7 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 	err = storeExportObject(ei.Title, obj)
 	if err != nil {
 		// logEntry().Error(err)
-		rw.WriteHeader(http.StatusInternalServerError)
-		rw.Write([]byte(err.Error()))
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	rw.WriteHeader(http.StatusOK)

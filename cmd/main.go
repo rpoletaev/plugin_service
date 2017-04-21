@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	log "github.com/Sirupsen/logrus"
 	ps "github.com/rpoletaev/plugin_service"
 	"github.com/weekface/mgorus"
@@ -57,28 +58,31 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
-		logEntry().Error(err)
+		//logEntry().Error(err)
 		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(err.Error()))
 		return
 	}
 
-	logEntry().Info("Читаем данные")
+	// logEntry().Info("Читаем данные")
 	ei, err := ps.GetExportInfo(string(body))
 	if err != nil {
-		logEntry().Error(err)
+		//logEntry().Error(err)
 		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write([]byte(err.Error()))
 		return
 	}
 
-	logEntry().Info("Получаем функцию")
+	//logEntry().Info("Получаем функцию")
 	exportFunc, err := getPluginFunc()
 	if err != nil {
-		logEntry().Errorf("Не удалось загрузить плагин: %v", err)
+		// logEntry().Errorf("Не удалось загрузить плагин: %v", err)
 		rw.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(rw, "Не удалось загрузить плагин: %v", err)
 		return
 	}
 
-	logEntry().Info("Получаем данные")
+	//logEntry().Info("Получаем данные")
 	obj := exportFunc(body, ei.Title)
 	if obj == nil {
 		logEntry().Errorf("Не удалось получить объект из плагина!")
@@ -86,13 +90,14 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logEntry().Info("Пишем в монгу")
+	//logEntry().Info("Пишем в монгу")
 	//Возвращаться может как одно значение, так и слайс, поэтому предварительно
 	//обрабатываем, проверяем и сохраняем каждое
 	err = storeExportObject(ei.Title, obj)
 	if err != nil {
-		logEntry().Error(err)
+		// logEntry().Error(err)
 		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(err.Error()))
 		return
 	}
 	rw.WriteHeader(http.StatusOK)

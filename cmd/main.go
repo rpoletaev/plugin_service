@@ -70,7 +70,7 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	var content XmlContent
-	err = json.Unmarshal(body, content)
+	err = json.Unmarshal(body, &content)
 	// ei, err := ps.GetExportInfo(string(body))
 	// if err != nil {
 	// 	//logEntry().Error(err)

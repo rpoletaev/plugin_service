@@ -1,16 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	log "github.com/Sirupsen/logrus"
-	ps "github.com/rpoletaev/exportinfo"
-	"github.com/weekface/mgorus"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"net/http"
 	"plugin"
 	"reflect"
+
+	log "github.com/Sirupsen/logrus"
+	"github.com/weekface/mgorus"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -30,6 +31,11 @@ type Config struct {
 	MongoBase    string              `yaml:"mongo_base"`
 	MySQL        string              `yaml:"mysql"`
 	RedisAddress string              `yaml:"redis_address"`
+}
+
+type XmlContent struct {
+	DocType string `json:"docType"`
+	Content []byte `json:"content"`
 }
 
 var (
@@ -63,12 +69,14 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ei, err := ps.GetExportInfo(string(body))
-	if err != nil {
-		//logEntry().Error(err)
-		http.Error(rw, err.Error(), http.StatusBadRequest)
-		return
-	}
+	var content XmlContent
+	err = json.Unmarshal(body, content)
+	// ei, err := ps.GetExportInfo(string(body))
+	// if err != nil {
+	// 	//logEntry().Error(err)
+	// 	http.Error(rw, err.Error(), http.StatusBadRequest)
+	// 	return
+	// }
 
 	exportFunc, err := getPluginFunc()
 	if err != nil {
@@ -77,7 +85,7 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	obj := exportFunc(body, ei.Title)
+	obj := exportFunc(content.Content, content.DocType)
 	if obj == nil {
 		http.Error(rw, "Не удалось получить объект из плагина!", http.StatusInternalServerError)
 		return
@@ -85,7 +93,7 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 
 	//Возвращаться может как одно значение, так и слайс, поэтому предварительно
 	//обрабатываем, проверяем и сохраняем каждое
-	err = storeExportObject(ei.Title, obj)
+	err = storeExportObject(content.DocType, obj)
 	if err != nil {
 		// logEntry().Error(err)
 		http.Error(rw, err.Error(), http.StatusInternalServerError)

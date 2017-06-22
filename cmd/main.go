@@ -57,6 +57,7 @@ func main() {
 	mongo.SetMode(mgo.Monotonic, true)
 
 	http.HandleFunc("/load", getExportHandler)
+	http.HandleFunc("/get_json", getExportJSONHandler)
 	logEntry().Error(http.ListenAndServe(":3131", nil))
 }
 
@@ -100,6 +101,43 @@ func getExportHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rw.WriteHeader(http.StatusOK)
+}
+
+func getExportJSONHandler(rw http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		//logEntry().Error(err)
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var content XmlContent
+	err = json.Unmarshal(body, &content)
+
+	exportFunc, err := getPluginFunc()
+	if err != nil {
+		// logEntry().Errorf("Не удалось загрузить плагин: %v", err)
+		http.Error(rw, fmt.Sprintf("Не удалось загрузить плагин: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	obj := exportFunc(content.Content, content.DocType)
+	if obj == nil {
+		http.Error(rw, "Не удалось получить объект из плагина!", http.StatusInternalServerError)
+		return
+	}
+
+	objJSON, err := json.Marshal(obj)
+	if err != nil {
+		http.Error(rw, fmt.Sprintf("Ошибка при переводе в json: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = rw.Write(objJSON)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func getPluginFunc() (func([]byte, string) interface{}, error) {

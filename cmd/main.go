@@ -128,7 +128,7 @@ func getExportJSONHandler(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	objJSON, err := json.MarshalIndent(obj, "", " ")
+	objJSON, err := json.Marshal(obj)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("Ошибка при переводе в json: %v", err), http.StatusInternalServerError)
 		return
